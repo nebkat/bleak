@@ -15,6 +15,10 @@ Changed
 * Changed ``BleakClient.mtu_size`` to read the "MTU" property of the characteristics in BlueZ backend. BlueZ >= 5.62 is required to get the MTU.
 * Deprecated the private ``_acquire_mtu()`` method in BlueZ backend. It now does nothing.
 
+Fixed
+-----
+* Fixed ``BleakClient.mtu_size`` and ``BleakGATTCharacteristic.max_write_without_response_size`` reading the default MTU in BlueZ backend when reconnecting to a device that BlueZ kept from an earlier connection. The "MTU" property is now read from BlueZ after connecting rather than from the properties cache.
+
 Removed
 -------
 * Removed the private ``_mtu_size`` override in BlueZ backend.

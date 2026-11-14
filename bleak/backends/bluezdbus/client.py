@@ -105,6 +105,8 @@ class BleakClientBlueZDBus(BaseBleakClient):
         self._notification_callbacks: dict[str, NotifyCallback] = {}
         # map of characteristic D-Bus path to AcquireNotify file descriptor
         self._notification_fds: dict[str, int] = {}
+        # the ATT MTU of the connection, read from BlueZ once services are resolved
+        self._mtu_size: Optional[int] = None
 
     # Connectivity methods
 
@@ -316,6 +318,7 @@ class BleakClientBlueZDBus(BaseBleakClient):
                     await self._get_services(
                         dangerous_use_bleak_cache=dangerous_use_bleak_cache
                     )
+                    self._mtu_size = await manager.refresh_mtu(self._device_path)
 
                     stack.pop_all()
                     return
@@ -404,6 +407,7 @@ class BleakClientBlueZDBus(BaseBleakClient):
 
         # Reset all stored services.
         self.services = None
+        self._mtu_size = None
 
     @override
     async def disconnect(self) -> None:
@@ -647,13 +651,8 @@ class BleakClientBlueZDBus(BaseBleakClient):
     @override
     def mtu_size(self) -> int:
         """Get ATT MTU size for active connection"""
-        if self.services is not None:
-            # BlueZ has no MTU property on the device, only one on each
-            # characteristic (added in BlueZ 5.62), which is the ATT MTU of the
-            # connection, so any characteristic will do.
-            char = next(iter(self.services.characteristics.values()), None)
-            if char is not None and "MTU" in char.obj[1]:
-                return char.obj[1]["MTU"]
+        if self._mtu_size is not None:
+            return self._mtu_size
 
         logger.warning(
             "Using default MTU value. BlueZ >= 5.62 is required to get the MTU."
